@@ -1,0 +1,18 @@
+# Артефакты сборки
+build/
+out/
+target/
+*.class
+*.jar
+
+# Настройки редакторов
+.idea/
+.vscode/
+*.iml
+.project
+.classpath
+.settings/
+
+# Системные файлы
+.DS_Store
+Thumbs.db
