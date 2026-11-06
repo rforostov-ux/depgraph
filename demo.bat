@@ -1,29 +1,22 @@
 @echo off
-rem Демонстрация этапа 1: корректные запуски и обработка ошибок для всех параметров
+rem Демонстрация этапа 2: прямые зависимости пакетов NuGet и обработка ошибок
 chcp 65001 >nul
 set "RUN=%~dp0run.bat"
 set "URL=https://api.nuget.org/v3/index.json"
 
-echo === 1. Все параметры заданы ===
-call "%RUN%" --package Newtonsoft.Json --repo %URL% --version 13.0.3 --ascii-tree --max-depth 3 --filter Test
-echo === 2. Тестовый режим ===
+echo === 1. Конкретная версия ===
+call "%RUN%" --package Serilog.Sinks.Console --repo %URL% --version 6.0.0
+echo === 2. Пакет с несколькими зависимостями ===
+call "%RUN%" --package Microsoft.Extensions.Logging --repo %URL% --version 8.0.0
+echo === 3. Последняя версия (latest) ===
+call "%RUN%" --package Newtonsoft.Json --repo %URL%
+echo === 4. Тестовый репозиторий ===
 call "%RUN%" --package A --repo "%~dp0tests\data\test_repo.txt" --repo-mode test
-echo === 3. Ошибка: неизвестная опция ===
-call "%RUN%" --package Serilog --repo %URL% --colour red
-echo === 4. Ошибка: нет обязательного --package ===
-call "%RUN%" --repo %URL%
-echo === 5. Ошибка: недопустимое имя пакета ===
-call "%RUN%" --package "my package!" --repo %URL%
-echo === 6. Ошибка: URL без http/https ===
-call "%RUN%" --package Serilog --repo api.nuget.org/v3/index.json
-echo === 7. Ошибка: файл тестового репозитория не найден ===
-call "%RUN%" --package A --repo no_such_file.txt --repo-mode test
-echo === 8. Ошибка: неизвестный режим репозитория ===
-call "%RUN%" --package A --repo %URL% --repo-mode local
-echo === 9. Ошибка: неверная версия ===
-call "%RUN%" --package Serilog --repo %URL% --version v1.x
-echo === 10. Ошибка: глубина не число / вне диапазона ===
-call "%RUN%" --package Serilog --repo %URL% --max-depth abc
-call "%RUN%" --package Serilog --repo %URL% --max-depth 0
-echo === 11. Ошибка: у опции нет значения ===
-call "%RUN%" --package --repo %URL%
+echo === 5. Ошибка: пакет не найден ===
+call "%RUN%" --package No.Such.Package.Xyz --repo %URL%
+echo === 6. Ошибка: нет такой версии ===
+call "%RUN%" --package Newtonsoft.Json --repo %URL% --version 99.0.0
+echo === 7. Ошибка: репозиторий недоступен ===
+call "%RUN%" --package Newtonsoft.Json --repo http://localhost:1/v3/index.json
+echo === 8. Ошибка: пакета нет в тестовом репозитории ===
+call "%RUN%" --package Z --repo "%~dp0tests\data\test_repo.txt" --repo-mode test
