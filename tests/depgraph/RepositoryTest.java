@@ -9,6 +9,7 @@ import java.util.Map;
  */
 public class RepositoryTest {
 
+    private static final int EXPECTED_GROUP_DEPENDENCIES = 2;
     private static final String INDEX = "{\"resources\": ["
             + "{\"@id\": \"https://search.example/query\", \"@type\": \"SearchQueryService\"},"
             + "{\"@id\": \"https://api.nuget.org/v3-flatcontainer/\", \"@type\": \"PackageBaseAddress/3.0.0\"}]}";
@@ -37,7 +38,8 @@ public class RepositoryTest {
         check("нормализация версии", NugetRepository.normalizeVersion("6.0").equals("6.0.0"));
 
         List<Dependency> deps = NugetRepository.parseNuspec(NUSPEC);
-        check("зависимости из групп", deps.size() == 2 && deps.get(0).name.equals("Serilog"));
+        check("зависимости из групп", deps.size() == EXPECTED_GROUP_DEPENDENCIES
+                && deps.get(0).name.equals("Serilog"));
         check("версия и платформа", deps.get(1).version.equals("4.5.5") && deps.get(1).framework.equals("net6.0"));
         List<Dependency> flat = NugetRepository.parseNuspec(FLAT_NUSPEC);
         check("зависимости без групп", flat.size() == 1 && flat.get(0).framework.isEmpty());

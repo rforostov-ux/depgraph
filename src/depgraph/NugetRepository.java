@@ -29,6 +29,7 @@ public class NugetRepository {
 
     private static final int HTTP_OK = 200;
     private static final int HTTP_NOT_FOUND = 404;
+    private static final int MIN_QUOTED_VERSION_LENGTH = 2;
     private static final Duration TIMEOUT = Duration.ofSeconds(20);
 
     private final HttpClient client = HttpClient.newBuilder()
@@ -180,7 +181,8 @@ public class NugetRepository {
     }
 
     private static String readVersionItem(String version) throws IOException {
-        if (!version.startsWith("\"") || !version.endsWith("\"") || version.length() < 2) {
+        if (!version.startsWith("\"") || !version.endsWith("\"")
+                || version.length() < MIN_QUOTED_VERSION_LENGTH) {
             throw new IOException("некорректная версия в списке пакета");
         }
         return version.substring(1, version.length() - 1);

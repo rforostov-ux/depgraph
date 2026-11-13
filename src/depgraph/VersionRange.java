@@ -7,6 +7,7 @@ import java.util.List;
 /** Ограничение версии зависимости NuGet и выбор подходящей версии. */
 public class VersionRange {
 
+    private static final int RANGE_BOUND_COUNT = 2;
     private final String text;
     private String lower;
     private String upper;
@@ -63,7 +64,7 @@ public class VersionRange {
         String[] bounds = inner.split(",", -1);
         if (bounds.length == 1) {
             parseExact(bounds[0]);
-        } else if (bounds.length == 2) {
+        } else if (bounds.length == RANGE_BOUND_COUNT) {
             lower = optionalVersion(bounds[0]);
             upper = optionalVersion(bounds[1]);
             checkBounds();
