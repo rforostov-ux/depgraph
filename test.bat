@@ -4,8 +4,10 @@ chcp 65001 >nul
 cd /d "%~dp0"
 if not exist build\tests mkdir build\tests
 javac -encoding UTF-8 -sourcepath "src;tests" -d build\tests ^
-    tests\depgraph\ConfigTest.java tests\depgraph\RepositoryTest.java
+    tests\depgraph\ConfigTest.java tests\depgraph\RepositoryTest.java tests\depgraph\GraphTest.java
 if errorlevel 1 exit /b 1
 java -cp build\tests depgraph.ConfigTest
 if errorlevel 1 exit /b 1
 java -cp build\tests depgraph.RepositoryTest
+if errorlevel 1 exit /b 1
+java -cp build\tests depgraph.GraphTest

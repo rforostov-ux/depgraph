@@ -32,6 +32,10 @@ public class ConfigTest {
         fails("нет файла", "--package", "A", "--repo", "nope.txt", "--repo-mode", "test");
         fails("плохой режим", "--package", "A", "--repo", URL, "--repo-mode", "local");
         fails("плохая версия", "--package", "A", "--repo", URL, "--version", "v1.x");
+        fails("пустая версия", "--package", "A", "--repo", URL, "--version", "");
+        fails("версия из точек", "--package", "A", "--repo", URL, "--version", "...");
+        c = Config.parse(new String[] {"--package", "A", "--repo", URL, "--version", "1.0.0-beta.1"});
+        check("предварительная версия", c.version.equals("1.0.0-beta.1"));
         fails("глубина не число", "--package", "A", "--repo", URL, "--max-depth", "abc");
         fails("глубина 0", "--package", "A", "--repo", URL, "--max-depth", "0");
         System.out.println(failed == 0 ? "Все тесты пройдены" : "Провалено: " + failed);

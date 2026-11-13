@@ -8,8 +8,10 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -27,7 +29,6 @@ public class NugetRepository {
 
     private static final int HTTP_OK = 200;
     private static final int HTTP_NOT_FOUND = 404;
-    private static final int VERSION_PARTS = 3;
     private static final Duration TIMEOUT = Duration.ofSeconds(20);
 
     private final HttpClient client = HttpClient.newBuilder()
@@ -35,6 +36,7 @@ public class NugetRepository {
             .connectTimeout(TIMEOUT)
             .build();
     private final String baseAddress;
+    private final Map<String, List<String>> versionCache = new HashMap<>();
 
     /**
      * Подключается к репозиторию: по URL индекса (…/index.json) находит адрес хранилища пакетов.
@@ -68,13 +70,39 @@ public class NugetRepository {
      */
     public String resolveVersion(String name, String version) throws IOException {
         if (!version.equals("latest")) {
-            return normalizeVersion(version);
+            return NugetVersion.normalize(version);
         }
-        String json = download(baseAddress + name.toLowerCase(Locale.ROOT) + "/index.json");
+        return new VersionRange("latest").select(getVersions(name));
+    }
+
+    /**
+     * Выбирает доступную версию, подходящую под ограничение из .nuspec.
+     *
+     * @param name имя зависимости
+     * @param range версия или диапазон версий
+     * @return выбранная версия
+     * @throws IOException если пакет или подходящая версия не найдены
+     */
+    public String resolveDependencyVersion(String name, String range) throws IOException {
+        try {
+            return new VersionRange(range).select(getVersions(name));
+        } catch (IllegalArgumentException | IOException e) {
+            throw new IOException("зависимость " + name + ": " + e.getMessage(), e);
+        }
+    }
+
+    private List<String> getVersions(String name) throws IOException {
+        String id = name.toLowerCase(Locale.ROOT);
+        if (versionCache.containsKey(id)) {
+            return versionCache.get(id);
+        }
+        String json = download(baseAddress + id + "/index.json");
         if (json == null) {
             throw new IOException("пакет " + name + " не найден в репозитории");
         }
-        return pickLatest(json);
+        List<String> versions = parseVersions(json);
+        versionCache.put(id, versions);
+        return versions;
     }
 
     /**
@@ -127,29 +155,35 @@ public class NugetRepository {
     }
 
     static String pickLatest(String versionsJson) throws IOException {
-        int open = versionsJson.indexOf('[');
-        int close = versionsJson.indexOf(']');
-        if (open < 0 || close < open) {
+        return new VersionRange("latest").select(parseVersions(versionsJson));
+    }
+
+    static List<String> parseVersions(String versionsJson) throws IOException {
+        int key = versionsJson.indexOf("\"versions\"");
+        int open = key < 0 ? -1 : versionsJson.indexOf('[', key);
+        int close = open < 0 ? -1 : versionsJson.indexOf(']', open);
+        if (open < 0 || close < 0) {
             throw new IOException("некорректный список версий пакета");
         }
-        String last = null;
-        String lastStable = null;
+        List<String> versions = new ArrayList<>();
         for (String item : versionsJson.substring(open + 1, close).split(",")) {
-            String version = item.trim().replace("\"", "");
-            if (!version.isEmpty()) {
-                last = version;
-                if (!version.contains("-")) {
-                    lastStable = version;
-                }
+            String version = item.trim();
+            if (version.isEmpty()) {
+                continue;
             }
+            versions.add(readVersionItem(version));
         }
-        if (last == null) {
+        if (versions.isEmpty()) {
             throw new IOException("у пакета нет ни одной версии");
         }
-        if (lastStable != null) {
-            return lastStable;
+        return versions;
+    }
+
+    private static String readVersionItem(String version) throws IOException {
+        if (!version.startsWith("\"") || !version.endsWith("\"") || version.length() < 2) {
+            throw new IOException("некорректная версия в списке пакета");
         }
-        return last;
+        return version.substring(1, version.length() - 1);
     }
 
     static List<Dependency> parseNuspec(String xml) throws IOException {
@@ -166,12 +200,7 @@ public class NugetRepository {
     }
 
     static String normalizeVersion(String version) {
-        String result = version;
-        int parts = version.split("\\.").length;
-        for (int i = parts; i < VERSION_PARTS; i++) {
-            result = result + ".0";
-        }
-        return result;
+        return NugetVersion.normalize(version);
     }
 
     private static Document readXml(String xml) throws IOException {

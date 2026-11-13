@@ -134,10 +134,8 @@ public class Config {
         if (version.equals("latest")) {
             return;
         }
-        for (char c : version.toCharArray()) {
-            if (!Character.isDigit(c) && c != '.') {
-                throw new IllegalArgumentException("версия должна быть latest или вида 13.0.3, а не " + version);
-            }
+        if (!NugetVersion.isValid(version)) {
+            throw new IllegalArgumentException("версия должна быть latest или вида 13.0.3, а не " + version);
         }
     }
 
