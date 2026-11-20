@@ -1,17 +1,16 @@
 package depgraph;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
 
 /**
- * Инструмент визуализации графа зависимостей пакетов NuGet. Этап 3: построение графа.
+ * Инструмент анализа зависимостей NuGet. Этап 4: порядок загрузки пакетов.
  */
 public class Main {
 
     /**
-     * Точка входа: читает параметры и выводит граф зависимостей или сообщение об ошибке.
+     * Точка входа: читает параметры и выводит порядок загрузки или сообщение об ошибке.
      *
      * @param args аргументы командной строки
      */
@@ -33,7 +32,7 @@ public class Main {
                 graph = new DependencyGraph(new NugetRepository(config.repository), config.maxDepth, config.filter);
             }
             graph.build(config.packageName, config.version);
-            printGraph(graph);
+            printOrder(graph);
         } catch (IllegalArgumentException | IOException e) {
             System.out.println("Ошибка: " + e.getMessage());
             System.exit(1);
@@ -45,27 +44,26 @@ public class Main {
                 && config.packageName.toLowerCase(Locale.ROOT).contains(config.filter.toLowerCase(Locale.ROOT));
     }
 
-    private static void printGraph(DependencyGraph graph) {
-        if (graph.getGraph().isEmpty()) {
-            System.out.println("Граф пуст: исходный пакет исключён фильтром");
-            return;
+    private static void printOrder(DependencyGraph graph) {
+        List<String> order = DependencyOrder.getOrder(graph.getGraph());
+        System.out.println("Порядок загрузки (исходный пакет — последний):");
+        int number = 1;
+        for (String node : order) {
+            System.out.println(number + ". " + node);
+            number++;
         }
-        System.out.println("Граф зависимостей:");
-        for (Map.Entry<String, Set<String>> entry : graph.getGraph().entrySet()) {
-            printNode(graph, entry.getKey(), entry.getValue());
+        if (hasUnexpandedNodes(graph)) {
+            System.out.println("Внимание: порядок учитывает только граф в пределах заданной глубины.");
         }
     }
 
-    private static void printNode(DependencyGraph graph, String node, Set<String> dependencies) {
-        if (dependencies.isEmpty()) {
-            String message = graph.isExpanded(node) ? "нет зависимостей в графе" : "предел глубины";
-            System.out.println(node + " -> (" + message + ")");
-            return;
+    private static boolean hasUnexpandedNodes(DependencyGraph graph) {
+        for (String node : graph.getGraph().keySet()) {
+            if (!graph.isExpanded(node)) {
+                return true;
+            }
         }
-        for (String dependency : dependencies) {
-            String marker = graph.isCycle(node, dependency) ? " (цикл)" : "";
-            System.out.println(node + " -> " + dependency + marker);
-        }
+        return false;
     }
 
     private static void printHelp() {
@@ -74,7 +72,7 @@ public class Main {
         System.out.println("  --repo <url|путь>     URL репозитория или путь к тестовому файлу (обязательно)");
         System.out.println("  --repo-mode <режим>   remote (по умолчанию) или test");
         System.out.println("  --version <версия>    версия пакета, например 13.0.3 (по умолчанию latest)");
-        System.out.println("  --ascii-tree          выводить зависимости ASCII-деревом");
+        System.out.println("  --ascii-tree          опция для этапа 5 (на этапе 4 не влияет на вывод)");
         System.out.println("  --max-depth <число>   максимальная глубина, 1..1000 (по умолчанию 5)");
         System.out.println("  --filter <подстрока>  пропускать пакеты, в имени которых есть подстрока");
     }

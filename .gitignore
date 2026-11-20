@@ -2,6 +2,8 @@
 build/
 out/
 target/
+comparison/obj/
+comparison/bin/
 *.class
 *.jar
 

@@ -1,19 +1,18 @@
 #!/bin/sh
-# Демонстрация этапа 3 на тестовом репозитории без подключения к интернету
+# Демонстрация этапа 4 на тестовых репозиториях без интернета
 ROOT=$(cd "$(dirname "$0")" && pwd)
 RUN="$ROOT/run.sh"
-REPO="$ROOT/tests/data/test_repo.txt"
+ACYCLIC="$ROOT/tests/data/acyclic_repo.txt"
+CYCLIC="$ROOT/tests/data/test_repo.txt"
 
-echo "=== 1. Транзитивные зависимости и цикл E -> A ==="
-"$RUN" --package A --repo "$REPO" --repo-mode test --max-depth 5
-echo "=== 2. Ограничение глубины: только прямые зависимости ==="
-"$RUN" --package A --repo "$REPO" --repo-mode test --max-depth 1
-echo "=== 3. Фильтр: исключаем пакет C ==="
-"$RUN" --package A --repo "$REPO" --repo-mode test --filter C
-echo "=== 4. Пакет без зависимостей ==="
-"$RUN" --package D --repo "$REPO" --repo-mode test
-echo "=== 5. Фильтр исключает исходный пакет ==="
-"$RUN" --package A --repo "$REPO" --repo-mode test --filter A
-echo "=== 6. Ошибка: пакет отсутствует ==="
-"$RUN" --package Z --repo "$REPO" --repo-mode test
+echo "=== 1. Порядок загрузки и общая зависимость D ==="
+"$RUN" --package A --repo "$ACYCLIC" --repo-mode test --max-depth 5
+echo "=== 2. Пакет без зависимостей ==="
+"$RUN" --package D --repo "$ACYCLIC" --repo-mode test
+echo "=== 3. Ограничение глубины ==="
+"$RUN" --package A --repo "$ACYCLIC" --repo-mode test --max-depth 1
+echo "=== 4. Фильтр исключает ветвь с циклом ==="
+"$RUN" --package A --repo "$CYCLIC" --repo-mode test --filter C
+echo "=== 5. Цикл: ожидается сообщение об ошибке ==="
+"$RUN" --package A --repo "$CYCLIC" --repo-mode test --max-depth 5
 exit 0
