@@ -1,22 +1,19 @@
 @echo off
-rem Демонстрация этапа 2: прямые зависимости пакетов NuGet и обработка ошибок
+rem Демонстрация этапа 3 на тестовом репозитории без подключения к интернету
 chcp 65001 >nul
 set "RUN=%~dp0run.bat"
-set "URL=https://api.nuget.org/v3/index.json"
+set "REPO=%~dp0tests\data\test_repo.txt"
 
-echo === 1. Конкретная версия ===
-call "%RUN%" --package Serilog.Sinks.Console --repo %URL% --version 6.0.0
-echo === 2. Пакет с несколькими зависимостями ===
-call "%RUN%" --package Microsoft.Extensions.Logging --repo %URL% --version 8.0.0
-echo === 3. Последняя версия (latest) ===
-call "%RUN%" --package Newtonsoft.Json --repo %URL%
-echo === 4. Тестовый репозиторий ===
-call "%RUN%" --package A --repo "%~dp0tests\data\test_repo.txt" --repo-mode test
-echo === 5. Ошибка: пакет не найден ===
-call "%RUN%" --package No.Such.Package.Xyz --repo %URL%
-echo === 6. Ошибка: нет такой версии ===
-call "%RUN%" --package Newtonsoft.Json --repo %URL% --version 99.0.0
-echo === 7. Ошибка: репозиторий недоступен ===
-call "%RUN%" --package Newtonsoft.Json --repo http://localhost:1/v3/index.json
-echo === 8. Ошибка: пакета нет в тестовом репозитории ===
-call "%RUN%" --package Z --repo "%~dp0tests\data\test_repo.txt" --repo-mode test
+echo === 1. Транзитивные зависимости и цикл E -^> A ===
+call "%RUN%" --package A --repo "%REPO%" --repo-mode test --max-depth 5
+echo === 2. Ограничение глубины: только прямые зависимости ===
+call "%RUN%" --package A --repo "%REPO%" --repo-mode test --max-depth 1
+echo === 3. Фильтр: исключаем пакет C ===
+call "%RUN%" --package A --repo "%REPO%" --repo-mode test --filter C
+echo === 4. Пакет без зависимостей ===
+call "%RUN%" --package D --repo "%REPO%" --repo-mode test
+echo === 5. Фильтр исключает исходный пакет ===
+call "%RUN%" --package A --repo "%REPO%" --repo-mode test --filter A
+echo === 6. Ошибка: пакет отсутствует ===
+call "%RUN%" --package Z --repo "%REPO%" --repo-mode test
+exit /b 0

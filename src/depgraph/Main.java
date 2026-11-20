@@ -1,16 +1,17 @@
 package depgraph;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
- * Инструмент визуализации графа зависимостей пакетов NuGet. Этап 2: вывод прямых зависимостей.
+ * Инструмент визуализации графа зависимостей пакетов NuGet. Этап 3: построение графа.
  */
 public class Main {
 
     /**
-     * Точка входа: читает параметры и выводит прямые зависимости пакета или сообщение об ошибке.
+     * Точка входа: читает параметры и выводит граф зависимостей или сообщение об ошибке.
      *
      * @param args аргументы командной строки
      */
@@ -21,49 +22,49 @@ public class Main {
         }
         try {
             Config config = Config.parse(args);
-            if (config.repoMode.equals("test")) {
-                printTestDependencies(config);
-            } else {
-                printNugetDependencies(config);
+            if (isRootExcluded(config)) {
+                System.out.println("Граф пуст: исходный пакет исключён фильтром");
+                return;
             }
+            DependencyGraph graph;
+            if (config.repoMode.equals("test")) {
+                graph = new DependencyGraph(TestRepository.load(config.repository), config.maxDepth, config.filter);
+            } else {
+                graph = new DependencyGraph(new NugetRepository(config.repository), config.maxDepth, config.filter);
+            }
+            graph.build(config.packageName, config.version);
+            printGraph(graph);
         } catch (IllegalArgumentException | IOException e) {
             System.out.println("Ошибка: " + e.getMessage());
             System.exit(1);
         }
     }
 
-    private static void printNugetDependencies(Config config) throws IOException {
-        NugetRepository repository = new NugetRepository(config.repository);
-        String version = repository.resolveVersion(config.packageName, config.version);
-        List<Dependency> dependencies = repository.getDependencies(config.packageName, version);
-        System.out.println("Прямые зависимости " + config.packageName + " " + version + ":");
-        if (dependencies.isEmpty()) {
-            System.out.println("  нет зависимостей");
+    private static boolean isRootExcluded(Config config) {
+        return !config.filter.isEmpty()
+                && config.packageName.toLowerCase(Locale.ROOT).contains(config.filter.toLowerCase(Locale.ROOT));
+    }
+
+    private static void printGraph(DependencyGraph graph) {
+        if (graph.getGraph().isEmpty()) {
+            System.out.println("Граф пуст: исходный пакет исключён фильтром");
+            return;
         }
-        String currentFramework = null;
-        for (Dependency dependency : dependencies) {
-            if (!dependency.framework.equals(currentFramework)) {
-                currentFramework = dependency.framework;
-                if (!currentFramework.isEmpty()) {
-                    System.out.println("[" + currentFramework + "]");
-                }
-            }
-            System.out.println("  " + dependency.name + " " + dependency.version);
+        System.out.println("Граф зависимостей:");
+        for (Map.Entry<String, Set<String>> entry : graph.getGraph().entrySet()) {
+            printNode(graph, entry.getKey(), entry.getValue());
         }
     }
 
-    private static void printTestDependencies(Config config) throws IOException {
-        Map<String, List<String>> graph = TestRepository.load(config.repository);
-        List<String> dependencies = graph.get(config.packageName);
-        if (dependencies == null) {
-            throw new IOException("пакет " + config.packageName + " не найден в тестовом репозитории");
-        }
-        System.out.println("Прямые зависимости " + config.packageName + ":");
+    private static void printNode(DependencyGraph graph, String node, Set<String> dependencies) {
         if (dependencies.isEmpty()) {
-            System.out.println("  нет зависимостей");
+            String message = graph.isExpanded(node) ? "нет зависимостей в графе" : "предел глубины";
+            System.out.println(node + " -> (" + message + ")");
+            return;
         }
         for (String dependency : dependencies) {
-            System.out.println("  " + dependency);
+            String marker = graph.isCycle(node, dependency) ? " (цикл)" : "";
+            System.out.println(node + " -> " + dependency + marker);
         }
     }
 

@@ -30,18 +30,29 @@ public class TestRepository {
                 continue;
             }
             int colon = line.indexOf(':');
-            if (colon < 0) {
+            if (colon < 0 || colon != line.lastIndexOf(':')) {
                 throw new IOException("строка " + (i + 1) + " тестового репозитория: ожидается формат 'A: B C'");
             }
             String name = line.substring(0, colon).trim();
+            checkName(name, i + 1);
+            if (graph.containsKey(name)) {
+                throw new IOException("строка " + (i + 1) + ": пакет " + name + " указан повторно");
+            }
             List<String> dependencies = new ArrayList<>();
             for (String dependency : line.substring(colon + 1).trim().split("\\s+")) {
                 if (!dependency.isEmpty()) {
+                    checkName(dependency, i + 1);
                     dependencies.add(dependency);
                 }
             }
             graph.put(name, dependencies);
         }
         return graph;
+    }
+
+    private static void checkName(String name, int line) throws IOException {
+        if (!name.matches("[A-Z]+")) {
+            throw new IOException("строка " + line + ": имя пакета должно состоять из заглавных латинских букв");
+        }
     }
 }
