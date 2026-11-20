@@ -2,29 +2,24 @@
 setlocal
 chcp 65001 >nul
 set "RUN=%~dp0run.bat"
-set "ACYCLIC=%~dp0tests\data\acyclic_repo.txt"
-set "CYCLIC=%~dp0tests\data\test_repo.txt"
+set "REPO=%~dp0tests\data\test_repo.txt"
 
-echo === 1. Loading order and shared dependency D ===
-call "%RUN%" --package A --repo "%ACYCLIC%" --repo-mode test --max-depth 5
+echo === 1. Package A: shared dependency and cycle ===
+call "%RUN%" --package A --repo "%REPO%" --repo-mode test --max-depth 5 --ascii-tree
 if errorlevel 1 exit /b 1
 
-echo === 2. Package without dependencies ===
-call "%RUN%" --package D --repo "%ACYCLIC%" --repo-mode test
+echo === 2. Package B: direct dependency ===
+call "%RUN%" --package B --repo "%REPO%" --repo-mode test --ascii-tree
 if errorlevel 1 exit /b 1
 
-echo === 3. Depth limit ===
-call "%RUN%" --package A --repo "%ACYCLIC%" --repo-mode test --max-depth 1
+echo === 3. Package D: no dependencies ===
+call "%RUN%" --package D --repo "%REPO%" --repo-mode test --ascii-tree
 if errorlevel 1 exit /b 1
 
-echo === 4. Filter removes the branch with a cycle ===
-call "%RUN%" --package A --repo "%CYCLIC%" --repo-mode test --filter C
+echo === 4. Depth limit ===
+call "%RUN%" --package A --repo "%REPO%" --repo-mode test --max-depth 1 --ascii-tree
 if errorlevel 1 exit /b 1
 
-echo === 5. Cycle: an error message is expected ===
-call "%RUN%" --package A --repo "%CYCLIC%" --repo-mode test --max-depth 5
-if not errorlevel 1 (
-    echo ERROR: the cycle was not detected.
-    exit /b 1
-)
-exit /b 0
+echo === 5. Filter excludes C ===
+call "%RUN%" --package A --repo "%REPO%" --repo-mode test --filter C --ascii-tree
+exit /b %errorlevel%

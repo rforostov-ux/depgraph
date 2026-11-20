@@ -4,6 +4,8 @@ out/
 target/
 comparison/obj/
 comparison/bin/
+comparison/**/obj/
+comparison/**/bin/
 *.class
 *.jar
 

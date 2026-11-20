@@ -1,18 +1,17 @@
 #!/bin/sh
-# Демонстрация этапа 4 на тестовых репозиториях без интернета
+# Примеры визуализации на тестовых пакетах без подключения к интернету
+set -e
 ROOT=$(cd "$(dirname "$0")" && pwd)
 RUN="$ROOT/run.sh"
-ACYCLIC="$ROOT/tests/data/acyclic_repo.txt"
-CYCLIC="$ROOT/tests/data/test_repo.txt"
+REPO="$ROOT/tests/data/test_repo.txt"
 
-echo "=== 1. Порядок загрузки и общая зависимость D ==="
-"$RUN" --package A --repo "$ACYCLIC" --repo-mode test --max-depth 5
-echo "=== 2. Пакет без зависимостей ==="
-"$RUN" --package D --repo "$ACYCLIC" --repo-mode test
-echo "=== 3. Ограничение глубины ==="
-"$RUN" --package A --repo "$ACYCLIC" --repo-mode test --max-depth 1
-echo "=== 4. Фильтр исключает ветвь с циклом ==="
-"$RUN" --package A --repo "$CYCLIC" --repo-mode test --filter C
-echo "=== 5. Цикл: ожидается сообщение об ошибке ==="
-"$RUN" --package A --repo "$CYCLIC" --repo-mode test --max-depth 5
-exit 0
+echo "=== 1. Пакет A: общие зависимости и цикл ==="
+"$RUN" --package A --repo "$REPO" --repo-mode test --max-depth 5 --ascii-tree
+echo "=== 2. Пакет B: простая зависимость ==="
+"$RUN" --package B --repo "$REPO" --repo-mode test --ascii-tree
+echo "=== 3. Пакет D: без зависимостей ==="
+"$RUN" --package D --repo "$REPO" --repo-mode test --ascii-tree
+echo "=== 4. Ограничение глубины ==="
+"$RUN" --package A --repo "$REPO" --repo-mode test --max-depth 1 --ascii-tree
+echo "=== 5. Фильтр исключает пакет C ==="
+"$RUN" --package A --repo "$REPO" --repo-mode test --filter C --ascii-tree

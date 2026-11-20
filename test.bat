@@ -19,7 +19,7 @@ if defined JAVA_HOME (
 if not exist build\tests mkdir build\tests
 "%JAVAC%" -encoding UTF-8 -sourcepath "src;tests" -d build\tests ^
     tests\depgraph\ConfigTest.java tests\depgraph\RepositoryTest.java tests\depgraph\GraphTest.java ^
-    tests\depgraph\DependencyOrderTest.java
+    tests\depgraph\DependencyOrderTest.java tests\depgraph\VisualizationTest.java
 if errorlevel 1 exit /b 1
 "%JAVA%" -cp build\tests depgraph.ConfigTest
 if errorlevel 1 exit /b 1
@@ -28,4 +28,6 @@ if errorlevel 1 exit /b 1
 "%JAVA%" -cp build\tests depgraph.GraphTest
 if errorlevel 1 exit /b 1
 "%JAVA%" -cp build\tests depgraph.DependencyOrderTest
+if errorlevel 1 exit /b 1
+"%JAVA%" -cp build\tests depgraph.VisualizationTest
 exit /b %errorlevel%
